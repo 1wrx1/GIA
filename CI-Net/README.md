@@ -1,10 +1,5 @@
 # CI-Net-Change
 
-## Environment
-cd CI-Net-Change \
-conda env create -f environment.yml \
-conda activate GIA 
-
 ## Experiments
 Refer to run_all.sh
 
