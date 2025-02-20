@@ -1,0 +1,29 @@
+#!/bin/bash
+#######################################################################################
+###                                                                                   #
+### slurm-pytorch.submit:                                                             #
+### Sample SLURM job script for running pytorch with GPU.                             #
+###                                                                                   #
+### Usage:                                                                            #
+###    cd to directory containing python script, then:                                #
+###    sbatch slurm-pytorch.submit                                                    #
+###                                                                                   #
+### - Written by David Pong, HKU ITS (2024-06-11)                                     #
+###                                                                                   #
+#######################################################################################
+
+#SBATCH --job-name=CI-Net-vit-tiny-bs8                     # Job name
+##SBATCH --mail-type=END,FAIL                  # Mail events
+##SBATCH --mail-user=u3637153@connect.hku.hk                 # Set your email address
+#SBATCH --partition=gpu                 # Specific Partition (gpu/gpu_shared)
+#SBATCH --qos=normal                           # Specific QoS (debug/normal)
+#SBATCH --time=3-12:00:00                      # Wall time limit (days-hrs:min:sec)
+#SBATCH --nodes=1                              # Single compute node used
+#SBATCH --cpus-per-task=4                      # CPUs used
+#SBATCH --gpus-per-node=1                      # GPUs used
+#SBATCH --output=out_CI-Net-vit-tiny-bs8.log                       # Standard output file
+#SBATCH --error=err_CI-Net-vit-tiny-bs8.log                        # Standard error file
+
+module load anaconda
+conda activate GIA
+python cifar10.py --arch vit-tiny --bs 8 --gpu 0 --act sigmoid
