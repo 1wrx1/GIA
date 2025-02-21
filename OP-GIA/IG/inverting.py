@@ -67,6 +67,7 @@ def compute_batch_order(lpips_scorer, output, ground_truth, setup):
 
 if __name__ == '__main__':
     parser = ArgumentParser("Inverting Gradients")
+    parser.add_argument("--root", type=str, help='root for datasets')
     parser.add_argument('--gpu', type=int, default=0, help='gpu device id')
     parser.add_argument("--arch", default='ResNet18', type=str, help='model architecture')
     parser.add_argument("--trained", default=False, type=bool, help='trained or not')
@@ -96,13 +97,13 @@ if __name__ == '__main__':
     setup = inversefed.utils.system_startup(gpu=args.gpu)
     defs = inversefed.training_strategy('conservative')
     if args.dataset == 'ImageNet':
-        data_path = '/mnt/7T/Data/Natural/ImageNet/'
+        data_path = args.root
         if args.arch == 'ResNet18':
             model = torchvision.models.resnet18(pretrained=args.trained)
         else:
             raise ('No support arch for ImageNet.')
     else:
-        data_path = '/mnt/7T/Data/Natural/'
+        data_path = args.root
         model, _ = inversefed.construct_model(args.arch, num_classes=args.num_classes, num_channels=3)
     loss_fn, _, data_loader = inversefed.construct_dataloaders(args.dataset, defs, data_path=data_path)
     model.to(**setup)

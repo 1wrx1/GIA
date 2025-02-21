@@ -25,8 +25,10 @@ For example, evaluating the attack performance of IG on the ImageNet dataset wit
 
 ```bash
 cd OP-GIA/IG
-python -u inverting.py --dataset ImageNet --num_classes 1000 --img_shape 224 --batch_size 64 --gpu 0
+python -u inverting.py --dataset ImageNet --num_classes 1000 --img_shape 224 --batch_size 64 --gpu 0 --root $root
 ```
+by setting `$root` as root of ImageNet.
+
 More commands are provided in `run.sh`.
 
 #### 2.2 GEN-GIA
