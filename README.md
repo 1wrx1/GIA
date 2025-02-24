@@ -1,4 +1,5 @@
-# Unveiling Gradient Inversion Attacks in Federated Learning
+# Exploring the Vulnerabilities of Federated Learning:
+A Deep Dive into Gradient Inversion Attacks
 
 ## Usage
 
