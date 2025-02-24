@@ -1,5 +1,4 @@
-# Exploring the Vulnerabilities of Federated Learning:
-A Deep Dive into Gradient Inversion Attacks
+# Exploring the Vulnerabilities of Federated Learning: A Deep Dive into Gradient Inversion Attacks
 
 ## Usage
 
