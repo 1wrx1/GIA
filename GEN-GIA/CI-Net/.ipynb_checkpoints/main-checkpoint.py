@@ -95,11 +95,7 @@ while len(label_all) < 64:
         used_idx.append(idx)
         imgs.append(img)
 
-    if args.dataset.startswith('imagenet'):
-        idx += 666
-
-    else:
-        idx += 1
+    idx += 1
 
 x = torch.stack(imgs)
 

@@ -58,67 +58,14 @@ class trainer():
             reconstructed_image[str(num_exp)]['config']={}
             reconstructed_image[str(num_exp)]['image']={}
             avg_score[str(num_exp)] = {}
-            
-            #-- Generate the ground-truth batch (images and labels)--#
-            '''idx = 48
-            while len(batch_label) < self.config['total_img']:
-                img, label = self.dataset[idx]
-                idx += 1
-
-                if label not in batch_label or len(batch_label) >= 100:
-                    batch_img.append(img)
-                    batch_label.append(label)
-                    used_idx.append(torch.tensor(idx))'''
 
             if self.config['CLIP']:
-                text_raw = ["a person holding a large fish by a serene lake", "a happy black and white dog with perked ears"]
-
-                image_raw = [Image.open("0048.png"), Image.open("11370.png")]
-
-                processor = CLIPProcessor.from_pretrained("openai/clip-vit-base-patch32")
-                processor.image_processor.do_convert_rgb = False
-                inputs = processor(text=text_raw, 
-                                   images=image_raw, 
-                                   return_tensors="pt", 
-                                   padding=True,
-                                    truncation=True).to(self.config['device'])
-
-                dataloader = inputs['pixel_values']
-
-                self.model.zero_grad()
-                outputs = self.model(**inputs)
-                
-                logits_per_image = outputs.logits_per_image
-                logits_per_text = outputs.logits_per_text
-                        
-                batch_size = logits_per_image.shape[0]
-                labels = torch.arange(batch_size, device=self.config['device'])
-                        
-                loss_img = torch.nn.functional.cross_entropy(logits_per_image, labels)
-                loss_txt = torch.nn.functional.cross_entropy(logits_per_text, labels)
-                loss = (loss_img + loss_txt) / 2
-                
-                #loss = outputs.loss
-                
-                print(loss)
-        
-                grad_parameters = [p for p in self.model.parameters() if p.requires_grad]
-                raw_gradients = torch.autograd.grad(loss, grad_parameters)
-                
-                original_dy_dx = list((_.detach().clone() for _ in raw_gradients))
-                gt_label = None
-
+                pass
             else:
                 for idx in self.used_idx:
-                    #idx = self.used_idx[i]                            # pick the first few images
                     print(idx)
-                    # idx = torch.randint(0,len(dataset),(1,))        # pick the image (idx) randomly
-                    # while idx in used_idx:                          # Keep pick the new images when it has already been choosen
-                    # idx = torch.randint(0,len(dataset),(1,))
                     batch_img.append(self.dataset[idx][0])
-                    #print(self.dataset[idx][0].shape)
                     batch_label.append(self.dataset[idx][1])
-                    #used_idx.append(idx)
     
                 dataloader = torch.stack(batch_img).to(self.config['device'])
                 gt_label = torch.as_tensor(batch_label).to(self.config['device'])      
@@ -145,18 +92,12 @@ class trainer():
                         dataloader.grad.data.zero_()
                         deviation_f1_target[:,f] = 0
                     
-                    # prune r_i corresponding to smallest ||dr_i/dX||/||r_i||
                     deviation_f1_x_norm_sum = deviation_f1_x_norm.sum(axis=0)
                     thresh = np.percentile(deviation_f1_x_norm_sum.flatten().cpu().numpy(), soteria_p)
                     mask = np.where(abs(deviation_f1_x_norm_sum.cpu()) < thresh, 0, 1).astype(np.float32)
                 
                 criterion = nn.CrossEntropyLoss().to(self.config['device'])      # Create the loss function
                 loss = criterion(output,gt_label)                           # Calculate the loss (Assuming that we extract the label)
-    
-                #print(self.model)
-    
-                '''for param in self.model.parameters():
-                    print(param.shape)'''
                 
                 if self.config['LoRA']:
                     params_with_grad = [p for p in self.model.parameters() if p.requires_grad]
@@ -164,13 +105,6 @@ class trainer():
                     dy_dx = torch.autograd.grad(loss, params_with_grad)       # Compute dy_dx
                 else:
                     dy_dx = torch.autograd.grad(loss, self.model.parameters())       # Compute dy_dx
-    
-                '''for grad in dy_dx:
-                    if grad is not None:
-                        print(grad.shape)
-    
-                    else:
-                        print(grad)'''
                     
                 original_real_dy_dx = list((_.detach().clone() for _ in dy_dx))
                 
@@ -341,71 +275,22 @@ class CI_attacker():
         # Define Generator and noise        
         self.netG = Generator(image_res=self.img_res,in_channel=channel).to(device)
         self.noise = torch.randn(b_size,nz, device=device) 
-        # y = torch.randint(10, (b_size,), device=device).long()  ###ZC:ImageNet
         optimizerG = optim.Adam(self.netG.parameters(), lr=lr)
         
         if lr_decay:
             scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizerG,milestones=[num_epochs // 2.667, num_epochs// 1.6,num_epochs // 1.142], gamma=0.1)   # 3/8 5/8 7/8
 
-        # Lists to keep track of progress
         G_losses = []
         image_recon = []
 
-        # Start the reconstrcution attack
-        # with trange(num_epochs,disable=True) as t:
-            # for iters in (t):
-        for iters in trange(num_epochs, desc="Processing"):
-            # print("Iteration {}".format(iters))                  
+        for iters in trange(num_epochs, desc="Processing"):             
             optimizerG.zero_grad()
 
-            #transform = T.Resize((224, 224))
 
-            #fake  = transform(self.netG(self.noise)).to(device)
+            fake = self.netG(self.noise).to(device)
 
-            fake = torch.nn.functional.interpolate(self.netG(self.noise), size=(224, 224), mode='area').to(device)
-
-            #transform = T.Resize((224, 224))
-            #output_tensor = transform(input_tensor)
-
-            print(fake.shape)
-            #Passing the fake input to the global model
             if self.config['CLIP']:
-                text_raw = ["a person holding a large fish by a serene lake", "a happy black and white dog with perked ears"]
-
-                image_raw = [Image.open("0048.png"), Image.open("11370.png")]
-    
-                processor = CLIPProcessor.from_pretrained("openai/clip-vit-base-patch32")
-                processor.image_processor.do_convert_rgb = False
-                
-                inputs = processor(text=text_raw, 
-                                   images=image_raw, 
-                                   return_tensors="pt", 
-                                   padding=True,
-                                    truncation=True).to(device)
-    
-                inputs['pixel_values'] = fake
-                #model.zero_grad()
-                outputs = model(**inputs)
-                with torch.backends.cuda.sdp_kernel(enable_flash=False, enable_math=True, enable_mem_efficient=False):
-                
-                    logits_per_image = outputs.logits_per_image
-                    logits_per_text = outputs.logits_per_text
-                            
-                    batch_size = logits_per_image.shape[0]
-                    labels = torch.arange(batch_size, device=device)
-                            
-                    loss_img = torch.nn.functional.cross_entropy(logits_per_image, labels)
-                    loss_txt = torch.nn.functional.cross_entropy(logits_per_text, labels)
-                    loss = (loss_img + loss_txt) / 2
-                    
-                    #loss = outputs.loss
-                    
-                    #print(loss)
-            
-                    grad_parameters = [p for p in model.parameters() if p.requires_grad]
-                    fake_origin_dy_dx = torch.autograd.grad(loss, grad_parameters)
-                
-                #input_gradient = list((_.detach().clone() for _ in raw_gradients))
+                pass
 
             else:
             
@@ -429,16 +314,6 @@ class CI_attacker():
                     gradient = gradient.reshape(shape)
                     gradients[i] = gradient
                 fake_dy_dx = tuple(gradients)
-                
-                '''percentage = self.config['prun_p'] * 100
-                device = fake_origin_dy_dx[0].device
-                fake_dy_dx = [None] * len(fake_origin_dy_dx)
-                for i in range(len(fake_origin_dy_dx)):
-                    grad_tensor = fake_origin_dy_dx[i].clone().detach().cpu().numpy()
-                    flattened_weights = np.abs(grad_tensor.flatten())
-                    thresh = np.percentile(flattened_weights, percentage)
-                    grad_tensor = np.where(abs(grad_tensor) < thresh, 0, grad_tensor)
-                    fake_dy_dx[i] = torch.Tensor(grad_tensor).to(device)'''
                 
 
             elif self.config['defense'] == 'no_fc':

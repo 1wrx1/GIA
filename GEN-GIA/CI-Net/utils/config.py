@@ -21,6 +21,8 @@ grad_idx = None,
 
 LoRA = False,
 
+CLIP = False,
+
 # Defense
 
 defense = "no_defense",
